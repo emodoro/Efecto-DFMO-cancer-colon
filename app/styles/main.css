@@ -1,0 +1,140 @@
+/* Estilo general */
+body {
+    font-family: 'Roboto', sans-serif;
+    color: #2c3e50;
+}
+
+/* Títulos */
+h1 {
+    color: #2c3e50;
+    font-weight: 700;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #3498db;
+}
+
+h2 {
+    color: #34495e;
+    font-weight: 600;
+    margin-top: 2rem;
+}
+
+h3 {
+    color: #7f8c8d;
+    font-weight: 500;
+}
+
+/* Sidebar */
+.sidebar .sidebar-content {
+    background-color: #f8f9fa;
+}
+
+.sidebar .widget-title {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+/* Métricas */
+.metric-container {
+    background-color: #ffffff;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.metric-label {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+.metric-value {
+    color: #2c3e50;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* Gráficos */
+.plot-container {
+    background-color: #ffffff;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin: 1rem 0;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 2rem;
+}
+
+.stTabs [data-baseweb="tab"] {
+    height: 4rem;
+    white-space: pre-wrap;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.stTabs [aria-selected="true"] {
+    background-color: #3498db;
+    color: #ffffff;
+}
+
+/* Botones */
+.stButton>button {
+    background-color: #3498db;
+    color: #ffffff;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    font-weight: 500;
+}
+
+.stButton>button:hover {
+    background-color: #2980b9;
+}
+
+/* Selectores */
+.stSelectbox [data-baseweb="select"] {
+    border-radius: 0.5rem;
+}
+
+/* Tablas */
+.dataframe {
+    font-size: 0.9rem;
+}
+
+.dataframe th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+/* Contenedor principal */
+.main .block-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Alertas y mensajes */
+.stAlert {
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .main .block-container {
+        padding: 1rem;
+    }
+    
+    h1 {
+        font-size: 1.5rem;
+    }
+    
+    h2 {
+        font-size: 1.2rem;
+    }
+    
+    .metric-value {
+        font-size: 1.2rem;
+    }
+}
