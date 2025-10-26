@@ -80,10 +80,14 @@ def main():
         help="Método de normalización aplicado a los datos"
     )
     
+    # Sección específica para heatmap clusterizado
+    st.sidebar.header("Parámetros de Heatmap Clusterizado")
+    
     # Método de clustering
     clustering_method = st.sidebar.selectbox(
         "Método de Clustering",
-        ["Ward", "Complete", "Average"]
+        ["Ward", "Complete", "Average"],
+        help="Algoritmo de clustering jerárquico para el heatmap"
     )
     
     # Número de genes top
@@ -93,7 +97,7 @@ def main():
         max_value=n_genes_after_filter,
         value=min(50, n_genes_after_filter),
         step=10,
-        help=f"Selecciona cuántos genes mostrar en el heatmap (de 10 a {n_genes_after_filter})"
+        help=f"Genes con mayor varianza a mostrar en el heatmap clusterizado (de 10 a {n_genes_after_filter})"
     )
     
     # Crear diccionario de filtros completo
@@ -124,7 +128,8 @@ def main():
         show_analysis(expr_data, covariables, filters)
     
     with tab4:
-        show_conclusions()
+        # Pasar datos para conclusiones dinámicas
+        show_conclusions(expr_data, covariables)
 
 if __name__ == "__main__":
     main()

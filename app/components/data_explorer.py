@@ -281,6 +281,43 @@ def show_general_view(expr_data, covariables, filters):
     fig.update_yaxes(title="Genes", side='left', row=5, col=1)
     
     st.plotly_chart(fig, use_container_width=True, key="explorer_heatmap")
+    
+    # Botones para descargar el heatmap
+    import plotly.io as pio
+    col_download1, col_download2, col_download3 = st.columns(3)
+    with col_download1:
+        # Descargar como HTML interactivo
+        html_buffer = pio.to_html(fig, include_plotlyjs='cdn')
+        st.download_button(
+            label="📥 Descargar heatmap (HTML)",
+            data=html_buffer,
+            file_name=f"heatmap_exploracion_{clustering_method}_{n_genes_to_show}genes.html",
+            mime="text/html",
+            key="download_heatmap_html_explorer"
+        )
+    with col_download2:
+        # Descargar como imagen PNG
+        try:
+            img_bytes = pio.to_image(fig, format='png', width=1400, height=1200, scale=2)
+            st.download_button(
+                label="📥 Descargar heatmap (PNG)",
+                data=img_bytes,
+                file_name=f"heatmap_exploracion_{clustering_method}_{n_genes_to_show}genes.png",
+                mime="image/png",
+                key="download_heatmap_png_explorer"
+            )
+        except Exception as e:
+            st.warning("⚠️ Exportación PNG no disponible. Instala kaleido: pip install kaleido")
+    with col_download3:
+        # Descargar datos del heatmap como CSV
+        csv_buffer = expr_reordered.to_csv()
+        st.download_button(
+            label="📥 Descargar datos (CSV)",
+            data=csv_buffer,
+            file_name=f"datos_heatmap_exploracion_{n_genes_to_show}genes.csv",
+            mime="text/csv",
+            key="download_heatmap_csv_explorer"
+        )
 
 def show_specific_genes(expr_data, covariables):
     """
@@ -332,7 +369,7 @@ def show_distributions(expr_data, covariables):
         rows=n_rows, 
         cols=n_cols,
         subplot_titles=expr_data.columns,
-        vertical_spacing=0.12,
+        vertical_spacing=0.15,
         horizontal_spacing=0.1
     )
     
@@ -346,12 +383,14 @@ def show_distributions(expr_data, covariables):
         datos = expr_data[columna]
         
         # Calcular estadísticas
-        media = round(datos.mean(), 3)
-        mediana = round(datos.median(), 3)
-        desv = round(datos.std(), 3)
-        mad = round((datos - mediana).abs().median(), 3)
-        curtosis = round(datos.kurtosis(), 3)
-        asimetria = round(datos.skew(), 3)
+        media = datos.mean()
+        mediana = datos.median()
+        sd = datos.std()
+        q1 = datos.quantile(0.25)
+        q3 = datos.quantile(0.75)
+        iqr = q3 - q1
+        curtosis = datos.kurtosis()
+        asimetria = datos.skew()
         
         # Calcular densidad kernel
         kernel = stats.gaussian_kde(datos)
@@ -365,7 +404,7 @@ def show_distributions(expr_data, covariables):
                 name=columna,
                 opacity=0.5,
                 showlegend=False,
-                hovertemplate="Valor: %{x}<br>Densidad: %{y:.3f}<extra></extra>"
+                hovertemplate="Valor: %{x:.2f}<br>Densidad: %{y:.3f}<extra></extra>"
             ),
             row=row,
             col=col
@@ -379,11 +418,40 @@ def show_distributions(expr_data, covariables):
                 mode='lines',
                 name=columna,
                 showlegend=False,
-                line=dict(color='red'),
-                hovertemplate=f"Media: {media}<br>Mediana: {mediana}<br>Desviación: {desv}<br>MAD: {mad}<br>Asimetría: {asimetria}<br>Curtosis: {curtosis}<extra></extra>"
+                line=dict(color='red', width=2),
+                hovertemplate=f"<b>Estadísticas</b><br>" +
+                             f"Media: {media:.2f}<br>" +
+                             f"Mediana: {mediana:.2f}<br>" +
+                             f"SD: {sd:.2f}<br>" +
+                             f"IQR: {iqr:.2f}<br>" +
+                             f"Asimetría: {asimetria:.2f}<br>" +
+                             f"Curtosis: {curtosis:.2f}<extra></extra>"
             ),
             row=row,
             col=col
+        )
+        
+        # Añadir anotación con estadísticas en el subplot
+        stats_text = (f"μ={media:.1f}, M={mediana:.1f}<br>" +
+                     f"SD={sd:.1f}, IQR={iqr:.1f}<br>" +
+                     f"Asim={asimetria:.2f}, Kurt={curtosis:.2f}")
+        
+        # Determinar referencias de ejes para este subplot
+        xref = f"x{idx+1} domain" if idx > 0 else "x domain"
+        yref = f"y{idx+1} domain" if idx > 0 else "y domain"
+        
+        fig.add_annotation(
+            text=stats_text,
+            xref=xref, 
+            yref=yref,
+            x=0.98, y=0.98,
+            xanchor='right', yanchor='top',
+            showarrow=False,
+            font=dict(size=9, color='black'),
+            bgcolor='rgba(255,255,255,0.9)',
+            bordercolor='gray',
+            borderwidth=1,
+            borderpad=3
         )
     
     # Ajustar el diseño
@@ -402,3 +470,30 @@ def show_distributions(expr_data, covariables):
     fig.update_yaxes(title_text="Densidad")
     
     st.plotly_chart(fig)
+    
+    # Botones para descargar la figura de distribuciones
+    import plotly.io as pio
+    col_download1, col_download2 = st.columns(2)
+    with col_download1:
+        # Descargar como HTML interactivo
+        html_buffer = pio.to_html(fig, include_plotlyjs='cdn')
+        st.download_button(
+            label="📥 Descargar distribuciones (HTML)",
+            data=html_buffer,
+            file_name="distribuciones_muestras.html",
+            mime="text/html",
+            key="download_distributions_html"
+        )
+    with col_download2:
+        # Descargar como imagen PNG
+        try:
+            img_bytes = pio.to_image(fig, format='png', width=1400, height=height, scale=2)
+            st.download_button(
+                label="📥 Descargar distribuciones (PNG)",
+                data=img_bytes,
+                file_name="distribuciones_muestras.png",
+                mime="image/png",
+                key="download_distributions_png"
+            )
+        except Exception as e:
+            st.warning("⚠️ Exportación PNG no disponible. Instala kaleido: pip install kaleido")

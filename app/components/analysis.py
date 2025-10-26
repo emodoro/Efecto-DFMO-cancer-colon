@@ -114,7 +114,8 @@ def show_pca_analysis(expr_data, covariables, filters):
         labels={
             f'PC{pc_x}': f"PC{pc_x} ({(var_exp[pc_x-1]*100).round(2)}%)",
             f'PC{pc_y}': f"PC{pc_y} ({(var_exp[pc_y-1]*100).round(2)}%)"
-        }
+        },
+        color_discrete_sequence=px.colors.qualitative.Set1  # Usar colores específicos y claros
     )
     
     # Calcular los rangos para cada eje independientemente
@@ -161,6 +162,33 @@ def show_pca_analysis(expr_data, covariables, filters):
     
     st.plotly_chart(fig)
     
+    # Botón para descargar la figura
+    import plotly.io as pio
+    col_download1, col_download2 = st.columns(2)
+    with col_download1:
+        # Descargar como HTML interactivo
+        html_buffer = pio.to_html(fig, include_plotlyjs='cdn')
+        st.download_button(
+            label="📥 Descargar gráfico PCA (HTML)",
+            data=html_buffer,
+            file_name=f"pca_PC{pc_x}_vs_PC{pc_y}.html",
+            mime="text/html"
+        )
+    with col_download2:
+        # Descargar como imagen PNG
+        try:
+            # Asegurar que la figura tenga todos los colores y leyendas visibles
+            fig_export = fig
+            img_bytes = pio.to_image(fig_export, format='png', width=1400, height=1400, scale=2)
+            st.download_button(
+                label="📥 Descargar gráfico PCA (PNG)",
+                data=img_bytes,
+                file_name=f"pca_PC{pc_x}_vs_PC{pc_y}.png",
+                mime="image/png"
+            )
+        except Exception as e:
+            st.warning("⚠️ Exportación PNG no disponible. Instala kaleido: pip install kaleido")
+    
     # Mostrar correlaciones con genes
     st.subheader(f"Correlaciones con PC{pc_corr}")
     st.write(f"""
@@ -195,6 +223,24 @@ def show_pca_analysis(expr_data, covariables, filters):
             'p_valor': '{:.2e}',
             'p_ajustado': '{:.2e}'
         }).to_html(escape=False), unsafe_allow_html=True)
+    
+    # Botón para descargar tabla completa de correlaciones
+    st.write("---")
+    st.write("### Descargar tabla completa de correlaciones")
+    
+    # Preparar tabla para descarga (todos los genes)
+    gene_correlations_download = gene_correlations.copy()
+    gene_correlations_download = gene_correlations_download.drop(columns=['enlace'], errors='ignore')
+    gene_correlations_download.index.name = 'gene_symbol'
+    gene_correlations_download = gene_correlations_download.reset_index()
+    
+    csv_buffer = gene_correlations_download.to_csv(index=False)
+    st.download_button(
+        label=f"📥 Descargar todas las correlaciones PC{pc_corr} (CSV)",
+        data=csv_buffer,
+        file_name=f"correlaciones_PC{pc_corr}_completo.csv",
+        mime="text/csv"
+    )
 
 def show_tsne_analysis(expr_data, covariables, filters):
     """
@@ -268,7 +314,8 @@ def show_tsne_analysis(expr_data, covariables, filters):
         labels={
             'tSNE_X': f"t-SNE {comp_x}",
             'tSNE_Y': f"t-SNE {comp_y}"
-        }
+        },
+        color_discrete_sequence=px.colors.qualitative.Set1  # Usar colores específicos y claros
     )
     
     # Calcular los rangos
@@ -315,6 +362,31 @@ def show_tsne_analysis(expr_data, covariables, filters):
     
     st.plotly_chart(fig, use_container_width=True)
     
+    # Botón para descargar la figura t-SNE
+    import plotly.io as pio
+    col_download1, col_download2 = st.columns(2)
+    with col_download1:
+        # Descargar como HTML interactivo
+        html_buffer = pio.to_html(fig, include_plotlyjs='cdn')
+        st.download_button(
+            label="📥 Descargar gráfico t-SNE (HTML)",
+            data=html_buffer,
+            file_name=f"tsne_comp{comp_x}_vs_comp{comp_y}.html",
+            mime="text/html"
+        )
+    with col_download2:
+        # Descargar como imagen PNG
+        try:
+            img_bytes = pio.to_image(fig, format='png', width=1200, height=1200, scale=2)
+            st.download_button(
+                label="📥 Descargar gráfico t-SNE (PNG)",
+                data=img_bytes,
+                file_name=f"tsne_comp{comp_x}_vs_comp{comp_y}.png",
+                mime="image/png"
+            )
+        except Exception as e:
+            st.warning("⚠️ Exportación PNG no disponible. Instala kaleido: pip install kaleido")
+    
     # Análisis de correlaciones con los ejes t-SNE
     st.subheader("Correlación de Genes con los Ejes t-SNE")
     
@@ -352,6 +424,23 @@ def show_tsne_analysis(expr_data, covariables, filters):
             'p_valor': '{:.2e}',
             'p_ajustado': '{:.2e}'
         }).to_html(escape=False), unsafe_allow_html=True)
+    
+    # Botón para descargar tabla completa de correlaciones
+    st.write("---")
+    st.write("### Descargar tabla completa de correlaciones")
+    
+    # Preparar tabla para descarga (todos los genes)
+    gene_correlations_download = gene_correlations.copy()
+    gene_correlations_download.index.name = 'gene_symbol'
+    gene_correlations_download = gene_correlations_download.reset_index()
+    
+    csv_buffer = gene_correlations_download.to_csv(index=False)
+    st.download_button(
+        label=f"📥 Descargar todas las correlaciones t-SNE{tsne_axis} (CSV)",
+        data=csv_buffer,
+        file_name=f"correlaciones_tSNE{tsne_axis}_completo.csv",
+        mime="text/csv"
+    )
 
 def show_differential_expression(expr_data, covariables):
     """
@@ -640,3 +729,37 @@ def show_clustered_heatmap(expr_data, covariables, filters):
     fig.update_yaxes(title="Genes", side='left', row=5, col=1)
     
     st.plotly_chart(fig, key="analysis_heatmap")
+    
+    # Botones para descargar el heatmap
+    import plotly.io as pio
+    col_download1, col_download2, col_download3 = st.columns(3)
+    with col_download1:
+        # Descargar como HTML interactivo
+        html_buffer = pio.to_html(fig, include_plotlyjs='cdn')
+        st.download_button(
+            label="📥 Descargar heatmap (HTML)",
+            data=html_buffer,
+            file_name=f"heatmap_clusterizado_{clustering_method}_{n_genes_to_show}genes.html",
+            mime="text/html"
+        )
+    with col_download2:
+        # Descargar como imagen PNG
+        try:
+            img_bytes = pio.to_image(fig, format='png', width=1400, height=1200, scale=2)
+            st.download_button(
+                label="📥 Descargar heatmap (PNG)",
+                data=img_bytes,
+                file_name=f"heatmap_clusterizado_{clustering_method}_{n_genes_to_show}genes.png",
+                mime="image/png"
+            )
+        except Exception as e:
+            st.warning("⚠️ Exportación PNG no disponible. Instala kaleido: pip install kaleido")
+    with col_download3:
+        # Descargar datos del heatmap como CSV
+        csv_buffer = expr_reordered.to_csv()
+        st.download_button(
+            label="📥 Descargar datos (CSV)",
+            data=csv_buffer,
+            file_name=f"datos_heatmap_{n_genes_to_show}genes.csv",
+            mime="text/csv"
+        )
