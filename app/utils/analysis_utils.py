@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler
 from scipy import stats
 from scipy.cluster.hierarchy import linkage, leaves_list
@@ -55,6 +56,59 @@ def perform_pca_analysis(expr_data, covariables, norm_method="Z-score"):
         'pca_df': df_pca,
         'var_exp': var_exp_p,
         'scores': scores
+    }
+
+def perform_tsne_analysis(expr_data, covariables, norm_method="Z-score", perplexity=30, n_iter=1000, n_components=3):
+    """
+    Realiza el análisis de t-SNE.
+    
+    Args:
+        expr_data: DataFrame con los datos de expresión
+        covariables: DataFrame con las covariables
+        norm_method: str, método de normalización ('Ninguna', 'Z-score', o 'Min-Max')
+        perplexity: int, parámetro de perplejidad para t-SNE (default: 30)
+        n_iter: int, número de iteraciones (default: 1000)
+        n_components: int, número de componentes t-SNE a calcular (default: 3)
+    """
+    # Preparar los datos base
+    X = expr_data.T.values
+    
+    if norm_method == "Z-score":
+        # Normalización Z-score por gen (columnas)
+        means = np.mean(X, axis=0)
+        stds = np.std(X, axis=0)
+        X = (X - means) / stds
+        
+    elif norm_method == "Min-Max":
+        # Normalización Min-Max por gen (columnas)
+        min_vals = np.min(X, axis=0)
+        max_vals = np.max(X, axis=0)
+        X = (X - min_vals) / (max_vals - min_vals)
+        
+    else:  # "Ninguna"
+        # No hacer nada con los datos originales
+        pass
+    
+    # Aplicar t-SNE (usar max_iter en lugar de n_iter)
+    tsne = TSNE(n_components=n_components, perplexity=perplexity, max_iter=n_iter, random_state=42)
+    tsne_results = tsne.fit_transform(X)
+    
+    # Crear DataFrame básico para t-SNE con todas las componentes
+    df_tsne = pd.DataFrame({
+        'Linea': covariables["Linea"],
+        'Trt': covariables["Tratamiento"],
+        'TrtLinea': covariables["Tratamiento"] + " - " + covariables["Linea"],
+        'Dia': covariables["Dia"]
+    })
+    
+    # Agregar todas las componentes t-SNE como columnas adicionales
+    for i in range(n_components):
+        df_tsne[f't-SNE{i+1}'] = tsne_results[:, i]
+    
+    return {
+        'tsne_df': df_tsne,
+        'tsne_results': tsne_results,
+        'n_components': n_components
     }
 
 def calculate_gene_correlations(expr_data, pc_scores):

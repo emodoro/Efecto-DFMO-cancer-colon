@@ -1,8 +1,10 @@
 import streamlit as st
 
-def create_sidebar():
+def create_sidebar(n_total_genes=5000):
     """
     Crea y gestiona el sidebar de la aplicación.
+    Args:
+        n_total_genes: Número total de genes en el dataset
     Returns:
         dict: Diccionario con los filtros seleccionados
     """
@@ -43,11 +45,12 @@ def create_sidebar():
     
     # Número de genes top
     n_top_genes = st.sidebar.slider(
-        "Top Genes",
+        "Número de genes",
         min_value=10,
-        max_value=100,
-        value=50,
-        step=10
+        max_value=n_total_genes,
+        value=min(50, n_total_genes),
+        step=10,
+        help=f"Selecciona cuántos genes mostrar en el heatmap (de 10 a {n_total_genes})"
     )
     
     return {

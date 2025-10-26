@@ -38,8 +38,72 @@ def main():
     expr_data = load_data(data_path / "matriz_expr_symbol_median.csv")
     covariables = load_data(data_path / "matriz_covariables_ordenada.csv")
     
-    # Crear sidebar y obtener filtros
-    filters = create_sidebar()
+    # Crear sidebar con filtros básicos primero (sin n_top_genes aún)
+    from utils.data_loader import filter_data
+    
+    # Crear filtros básicos en sidebar
+    st.sidebar.title("Filtros y Opciones")
+    st.sidebar.header("Filtros de Datos")
+    
+    # Filtro de línea celular
+    cell_lines = st.sidebar.multiselect(
+        "Línea Celular",
+        ["HT29", "NCM460"],
+        default=["HT29", "NCM460"]
+    )
+    
+    # Filtro de tratamiento
+    treatments = st.sidebar.multiselect(
+        "Tratamiento",
+        ["Control", "DFMO"],
+        default=["Control", "DFMO"]
+    )
+    
+    # Aplicar filtrado básico para calcular genes disponibles
+    basic_filters = {
+        "cell_lines": cell_lines,
+        "treatments": treatments,
+        "normalization": "Sin normalizar",
+        "clustering_method": "Ward",
+        "n_top_genes": 50
+    }
+    expr_filtered_temp, _ = filter_data(expr_data, covariables, basic_filters)
+    n_genes_after_filter = len(expr_filtered_temp)
+    
+    # Ahora crear el resto de opciones del sidebar con el número correcto
+    st.sidebar.header("Opciones de Visualización")
+    
+    # Tipo de normalización global
+    normalization = st.sidebar.selectbox(
+        "Normalización",
+        ["Sin normalizar", "Z-score", "Min-Max"],
+        help="Método de normalización aplicado a los datos"
+    )
+    
+    # Método de clustering
+    clustering_method = st.sidebar.selectbox(
+        "Método de Clustering",
+        ["Ward", "Complete", "Average"]
+    )
+    
+    # Número de genes top
+    n_top_genes = st.sidebar.slider(
+        "Número de genes",
+        min_value=10,
+        max_value=n_genes_after_filter,
+        value=min(50, n_genes_after_filter),
+        step=10,
+        help=f"Selecciona cuántos genes mostrar en el heatmap (de 10 a {n_genes_after_filter})"
+    )
+    
+    # Crear diccionario de filtros completo
+    filters = {
+        "cell_lines": cell_lines,
+        "treatments": treatments,
+        "normalization": normalization,
+        "clustering_method": clustering_method,
+        "n_top_genes": n_top_genes
+    }
     
     # Pestañas principales
     tab1, tab2, tab3, tab4 = st.tabs([

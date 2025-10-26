@@ -1,9 +1,11 @@
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.figure_factory as ff
 from plotly.subplots import make_subplots
 import numpy as np
 from scipy import stats
+from scipy.cluster.hierarchy import linkage
 from utils.data_loader import filter_data, normalize_data
 from utils.plotting import create_heatmap, create_boxplot
 from utils.analysis_utils import create_clustered_heatmap
@@ -42,35 +44,241 @@ def show_data_explorer(expr_data, covariables, filters):
     )
     
     if view_type == "Vista General":
-        show_general_view(expr_filtered, cov_filtered)
+        show_general_view(expr_filtered, cov_filtered, filters)
     elif view_type == "Genes Específicos":
         show_specific_genes(expr_filtered, cov_filtered)
     else:
         show_distributions(expr_filtered, cov_filtered)
 
-def show_general_view(expr_data, covariables):
+def show_general_view(expr_data, covariables, filters):
     """
-    Muestra una vista general de los datos usando un heatmap clusterizado.
+    Muestra una vista general de los datos usando un heatmap clusterizado con dendrogramas y anotaciones de covariables.
     """
     st.subheader("Vista General de la Expresión Génica")
     
-    # Crear heatmap clusterizado
-    expr_clustered = create_clustered_heatmap(expr_data)
+    # Obtener parámetros del sidebar
+    clustering_method = filters.get('clustering_method', 'Ward').lower()
+    n_top_genes = filters.get('n_top_genes', 50)
     
-    # Crear figura
-    fig = go.Figure(data=go.Heatmap(
-        z=expr_clustered.values,
-        x=expr_clustered.columns,
-        y=expr_clustered.index,
-        colorscale='RdBu_r'
-    ))
+    # Ajustar n_top_genes si es mayor que el total de genes disponibles
+    n_genes_available = len(expr_data)
+    n_genes_to_show = min(n_top_genes, n_genes_available)
     
+    # Seleccionar los top genes por varianza
+    gene_variance = expr_data.var(axis=1)
+    top_genes = gene_variance.nlargest(n_genes_to_show).index
+    expr_top = expr_data.loc[top_genes]
+    
+    st.info(f"Mostrando {n_genes_to_show} genes (de {n_genes_available} disponibles) con mayor varianza usando clustering {clustering_method.capitalize()}")
+    
+    # Normalizar datos (Z-score por genes)
+    expr_norm = (expr_top.T - expr_top.mean(axis=1)) / expr_top.std(axis=1)
+    expr_norm = expr_norm.T
+    
+    # Calcular linkage para filas (genes) y columnas (muestras)
+    row_linkage = linkage(expr_norm.values, method=clustering_method, metric='euclidean')
+    col_linkage = linkage(expr_norm.T.values, method=clustering_method, metric='euclidean')
+    
+    # Crear figura con dendrogramas usando figure_factory
+    fig = ff.create_dendrogram(
+        expr_norm.T.values,
+        orientation='bottom',
+        labels=expr_norm.columns.tolist(),
+        linkagefun=lambda x: linkage(x.T, method=clustering_method, metric='euclidean')
+    )
+    
+    # Obtener el orden de las columnas del dendrograma
+    col_order = fig['layout']['xaxis']['ticktext']
+    
+    # Crear dendrograma para las filas (genes)
+    dendro_side = ff.create_dendrogram(
+        expr_norm.values,
+        orientation='right',
+        labels=expr_norm.index.tolist(),
+        linkagefun=lambda x: linkage(x, method=clustering_method, metric='euclidean')
+    )
+    
+    # Obtener el orden de las filas del dendrograma
+    row_order = dendro_side['layout']['yaxis']['ticktext']
+    
+    # Reordenar la matriz según los dendrogramas
+    expr_reordered = expr_norm.loc[row_order, col_order]
+    
+    # Reordenar las covariables según el orden de las columnas
+    cov_reordered = covariables.loc[col_order]
+    
+    # Definir paletas de colores para cada covariable
+    color_maps = {
+        'Tratamiento': {'Control': '#66c2a5', 'DFMO': '#fc8d62'},
+        'Linea': {'HT29': '#8da0cb', 'NCM460': '#e78ac3'},
+        'Dia': {}
+    }
+    
+    # Crear colores para los días únicos
+    dias_unicos = sorted(covariables['Dia'].unique())
+    dia_colors = ['#a6d854', '#ffd92f', '#e5c494']
+    for i, dia in enumerate(dias_unicos):
+        color_maps['Dia'][dia] = dia_colors[i % len(dia_colors)]
+    
+    # Crear los subplots con espacio para las anotaciones de covariables
+    fig = make_subplots(
+        rows=5, cols=2,
+        row_heights=[0.15, 0.02, 0.02, 0.02, 0.79],
+        column_widths=[0.85, 0.15],
+        specs=[[{'type': 'scatter'}, None],
+               [{'type': 'heatmap'}, None],
+               [{'type': 'heatmap'}, None],
+               [{'type': 'heatmap'}, None],
+               [{'type': 'heatmap'}, {'type': 'scatter'}]],
+        horizontal_spacing=0.01,
+        vertical_spacing=0.005
+    )
+    
+    # Dendrograma superior (muestras)
+    dendro_top = ff.create_dendrogram(
+        expr_norm.T.values,
+        orientation='bottom',
+        linkagefun=lambda x: linkage(x.T, method=clustering_method, metric='euclidean')
+    )
+    for trace in dendro_top['data']:
+        fig.add_trace(trace, row=1, col=1)
+    
+    # Añadir anotaciones de covariables (3 líneas)
+    # Fila 2: Tratamiento
+    trt_values = [cov_reordered.loc[sample, 'Tratamiento'] for sample in col_order]
+    trt_colors_numeric = [0 if val == 'Control' else 1 for val in trt_values]
+    fig.add_trace(go.Heatmap(
+        z=[trt_colors_numeric],
+        x=col_order,
+        y=['Tratamiento'],
+        colorscale=[[0, '#66c2a5'], [1, '#fc8d62']],
+        showscale=False,
+        hovertemplate='Muestra: %{x}<br>Tratamiento: %{customdata}<extra></extra>',
+        customdata=[trt_values]
+    ), row=2, col=1)
+    
+    # Fila 3: Línea
+    linea_values = [cov_reordered.loc[sample, 'Linea'] for sample in col_order]
+    linea_colors_numeric = [0 if val == 'HT29' else 1 for val in linea_values]
+    fig.add_trace(go.Heatmap(
+        z=[linea_colors_numeric],
+        x=col_order,
+        y=['Línea'],
+        colorscale=[[0, '#8da0cb'], [1, '#e78ac3']],
+        showscale=False,
+        hovertemplate='Muestra: %{x}<br>Línea: %{customdata}<extra></extra>',
+        customdata=[linea_values]
+    ), row=3, col=1)
+    
+    # Fila 4: Día
+    dia_values = [cov_reordered.loc[sample, 'Dia'] for sample in col_order]
+    # Crear mapeo numérico para los días
+    dias_unicos_sorted = sorted(set(dia_values))
+    dia_to_num = {dia: i for i, dia in enumerate(dias_unicos_sorted)}
+    dia_colors_numeric = [dia_to_num[val] for val in dia_values]
+    
+    # Crear escala de colores normalizada para los días
+    n_dias = len(dias_unicos_sorted)
+    if n_dias == 1:
+        dia_colorscale = [[0, '#a6d854'], [1, '#a6d854']]
+    elif n_dias == 2:
+        dia_colorscale = [[0, '#a6d854'], [1, '#ffd92f']]
+    else:
+        dia_colorscale = [[0, '#a6d854'], [0.5, '#ffd92f'], [1, '#e5c494']]
+    
+    fig.add_trace(go.Heatmap(
+        z=[dia_colors_numeric],
+        x=col_order,
+        y=['Día'],
+        colorscale=dia_colorscale,
+        showscale=False,
+        hovertemplate='Muestra: %{x}<br>Día: %{customdata}<extra></extra>',
+        customdata=[dia_values]
+    ), row=4, col=1)
+    
+    # Dendrograma lateral (genes)
+    dendro_side = ff.create_dendrogram(
+        expr_norm.values,
+        orientation='left',
+        linkagefun=lambda x: linkage(x, method=clustering_method, metric='euclidean')
+    )
+    for trace in dendro_side['data']:
+        fig.add_trace(trace, row=5, col=2)
+    
+    # Heatmap principal
+    heatmap = go.Heatmap(
+        z=expr_reordered.values,
+        x=col_order,
+        y=row_order,
+        colorscale='RdBu_r',
+        colorbar=dict(
+            title="Z-score",
+            x=1.15,
+            len=0.79,
+            y=0.395
+        )
+    )
+    fig.add_trace(heatmap, row=5, col=1)
+    
+    # Crear leyendas manualmente como anotaciones
+    legend_items = []
+    y_pos = 0.98
+    
+    # Leyenda Tratamiento
+    legend_items.append(dict(text="<b>Tratamiento:</b>", x=1.02, y=y_pos, showarrow=False, xref='paper', yref='paper', xanchor='left', font=dict(size=10)))
+    y_pos -= 0.02
+    for key, color in color_maps['Tratamiento'].items():
+        legend_items.append(dict(
+            text=f'<span style="color:{color}">■</span> {key}',
+            x=1.02, y=y_pos, showarrow=False, xref='paper', yref='paper', xanchor='left', font=dict(size=9)
+        ))
+        y_pos -= 0.015
+    
+    # Leyenda Línea
+    y_pos -= 0.01
+    legend_items.append(dict(text="<b>Línea:</b>", x=1.02, y=y_pos, showarrow=False, xref='paper', yref='paper', xanchor='left', font=dict(size=10)))
+    y_pos -= 0.02
+    for key, color in color_maps['Linea'].items():
+        legend_items.append(dict(
+            text=f'<span style="color:{color}">■</span> {key}',
+            x=1.02, y=y_pos, showarrow=False, xref='paper', yref='paper', xanchor='left', font=dict(size=9)
+        ))
+        y_pos -= 0.015
+    
+    # Leyenda Día
+    y_pos -= 0.01
+    legend_items.append(dict(text="<b>Día:</b>", x=1.02, y=y_pos, showarrow=False, xref='paper', yref='paper', xanchor='left', font=dict(size=10)))
+    y_pos -= 0.02
+    for key, color in color_maps['Dia'].items():
+        legend_items.append(dict(
+            text=f'<span style="color:{color}">■</span> {key}',
+            x=1.02, y=y_pos, showarrow=False, xref='paper', yref='paper', xanchor='left', font=dict(size=9)
+        ))
+        y_pos -= 0.015
+    
+    # Actualizar layout
     fig.update_layout(
         title="Heatmap Clusterizado de Expresión Génica",
-        xaxis_title="Muestras",
-        yaxis_title="Genes",
-        height=800
+        showlegend=False,
+        height=950,
+        width=1100,
+        annotations=legend_items
     )
+    
+    # Ocultar ejes de los dendrogramas
+    fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False, row=1, col=1)
+    fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False, row=1, col=1)
+    fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False, row=5, col=2)
+    fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False, row=5, col=2)
+    
+    # Ocultar ejes de las anotaciones de covariables
+    for row in [2, 3, 4]:
+        fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False, row=row, col=1)
+        fig.update_yaxes(showticklabels=True, showgrid=False, zeroline=False, tickfont=dict(size=9), row=row, col=1)
+    
+    # Mostrar etiquetas solo en el heatmap
+    fig.update_xaxes(title="Muestras", side='bottom', row=5, col=1)
+    fig.update_yaxes(title="Genes", side='left', row=5, col=1)
     
     st.plotly_chart(fig, use_container_width=True, key="explorer_heatmap")
 
