@@ -7,7 +7,7 @@ import numpy as np
 from scipy import stats
 from scipy.cluster.hierarchy import linkage
 from utils.data_loader import filter_data, normalize_data
-from utils.plotting import create_heatmap, create_boxplot, is_streamlit_cloud
+from utils.plotting import create_heatmap, create_boxplot
 from utils.analysis_utils import create_clustered_heatmap
 
 def show_data_explorer(expr_data, covariables, filters):
@@ -307,8 +307,9 @@ def show_general_view(expr_data, covariables, filters):
                 key="download_heatmap_png_explorer"
             )
         except Exception as e:
-            if not is_streamlit_cloud():
-                st.warning("⚠️ Exportación PNG no disponible. Instala kaleido: pip install kaleido")
+            # PNG export not available (requires kaleido library)
+            # Silently skip - HTML download is always available
+            pass
     with col_download3:
         # Descargar datos del heatmap como CSV
         csv_buffer = expr_reordered.to_csv()
@@ -497,5 +498,6 @@ def show_distributions(expr_data, covariables):
                 key="download_distributions_png"
             )
         except Exception as e:
-            if not is_streamlit_cloud():
-                st.warning("⚠️ Exportación PNG no disponible. Instala kaleido: pip install kaleido")
+            # PNG export not available (requires kaleido library)
+            # Silently skip - HTML download is always available
+            pass

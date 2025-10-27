@@ -15,7 +15,6 @@ from utils.analysis_utils import (
     calculate_differential_expression,
     calculate_gene_correlations
 )
-from utils.plotting import is_streamlit_cloud
 
 def show_analysis(expr_data, covariables, filters):
     """
@@ -188,8 +187,9 @@ def show_pca_analysis(expr_data, covariables, filters):
                 mime="image/png"
             )
         except Exception as e:
-            if not is_streamlit_cloud():
-                st.warning("⚠️ Exportación PNG no disponible. Instala kaleido: pip install kaleido")
+            # PNG export not available (requires kaleido library)
+            # Silently skip - HTML download is always available
+            pass
     
     # Mostrar correlaciones con genes
     st.subheader(f"Correlaciones con PC{pc_corr}")
@@ -387,8 +387,9 @@ def show_tsne_analysis(expr_data, covariables, filters):
                 mime="image/png"
             )
         except Exception as e:
-            if not is_streamlit_cloud():
-                st.warning("⚠️ Exportación PNG no disponible. Instala kaleido: pip install kaleido")
+            # PNG export not available (requires kaleido library)
+            # Silently skip - HTML download is always available
+            pass
     
     # Análisis de correlaciones con los ejes t-SNE
     st.subheader("Correlación de Genes con los Ejes t-SNE")
@@ -756,8 +757,9 @@ def show_clustered_heatmap(expr_data, covariables, filters):
                 mime="image/png"
             )
         except Exception as e:
-            if not is_streamlit_cloud():
-                st.warning("⚠️ Exportación PNG no disponible. Instala kaleido: pip install kaleido")
+            # PNG export not available (requires kaleido library)
+            # Silently skip - HTML download is always available
+            pass
     with col_download3:
         # Descargar datos del heatmap como CSV
         csv_buffer = expr_reordered.to_csv()
