@@ -4,6 +4,9 @@ import plotly.express as px
 import numpy as np
 from pathlib import Path
 
+# App version - update to force Streamlit Cloud cache refresh
+APP_VERSION = "1.0.1"
+
 # Importar componentes
 from components.sidebar import create_sidebar
 from components.overview import show_overview
