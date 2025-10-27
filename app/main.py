@@ -33,6 +33,10 @@ def main():
     # Cargar CSS
     load_css()
     
+    # Clear any cached data (helps with updates in Streamlit Cloud)
+    st.cache_data.clear()
+    st.cache_resource.clear()
+    
     # Título principal
     st.title("🧬 Análisis del Efecto DFMO en Cáncer de Colon")
     
