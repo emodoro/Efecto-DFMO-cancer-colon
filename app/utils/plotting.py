@@ -86,3 +86,12 @@ def create_boxplot(data, x, y, color, title):
         points="all"
     )
     return fig
+
+
+def is_streamlit_cloud():
+    """
+    Detecta si la app está corriendo en Streamlit Cloud.
+    Retorna True si estamos en Cloud, False si es desarrollo local.
+    """
+    import os
+    return "STREAMLIT_SERVER_ADDRESS" in os.environ

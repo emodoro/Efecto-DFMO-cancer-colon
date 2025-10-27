@@ -87,22 +87,29 @@ Requisitos:
 
 Pasos:
 1) Crear entorno virtual e instalar dependencias
-	- python -m venv .venv
-	- .\.venv\Scripts\Activate.ps1
-	- pip install -r requirements.txt
+   - python -m venv .venv
+   - .\.venv\Scripts\Activate.ps1
+   - pip install -r requirements.txt
 
-2) (Opcional para exportar PNG) Instalar kaleido
-	- pip install kaleido
+2) (Opcional para exportar PNG en local) Instalar kaleido
+   - pip install kaleido
 
 3) Iniciar la app
-	- streamlit run app/main.py
+   - streamlit run app/main.py
+
+### Deploy en Streamlit Cloud
+
+**Nota importante:** La exportación a PNG no está disponible en Streamlit Cloud (requiere librerías del sistema). 
+Los usuarios pueden descargar:
+- ✅ **HTML interactivo** (siempre disponible — mejor opción en Cloud)
+- ✅ **CSV** con datos para análisis externo
+- ✅ **PNG** (solo en desarrollo local con kaleido)
 
 Solución de problemas comunes:
 - Error al cargar CSS: asegúrate de que app/styles/main.css existe (viene incluido) y que ejecutas desde la raíz del repo.
 - Error al cargar datos: verifica que los CSV de data/ están presentes y con permisos de lectura.
-- Exportación PNG falla: instala kaleido y reinicia la app.
-
-
+- Exportación PNG falla en local: instala kaleido y reinicia la app.
+- En Streamlit Cloud: no verás warnings de PNG (se ocultan automáticamente).
 ## Reproducibilidad y notebooks
 
 - notebooks/prep.ipynb: preprocesamiento y anotación; documentado en docs/prep.md
