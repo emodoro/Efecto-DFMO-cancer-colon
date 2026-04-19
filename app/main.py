@@ -13,6 +13,7 @@ from components.overview import show_overview
 from components.data_explorer import show_data_explorer
 from components.analysis import show_analysis
 from components.conclusions import show_conclusions
+from components.about import show_about
 from utils.data_loader import load_data
 from utils.plotting import *
 
@@ -41,7 +42,7 @@ def main():
     st.title("🧬 Análisis del Efecto DFMO en Cáncer de Colon")
     
     # Cargar datos
-    data_path = Path(__file__).parent.parent / "data"
+    data_path = (Path(__file__).resolve().parent.parent / "data").resolve()
     expr_data = load_data(data_path / "matriz_expr_symbol_median.csv")
     covariables = load_data(data_path / "matriz_covariables_ordenada.csv")
     
@@ -117,11 +118,12 @@ def main():
     }
     
     # Pestañas principales
-    tab1, tab2, tab3, tab4 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "📊 Visión General",
         "🔍 Explorador de Datos",
         "📈 Análisis",
-        "📑 Conclusiones"
+        "📑 Conclusiones",
+        "👥 Quiénes Somos"
     ])
     
     # Contenido de las pestañas
@@ -137,6 +139,24 @@ def main():
     with tab4:
         # Pasar datos para conclusiones dinámicas
         show_conclusions(expr_data, covariables)
+
+    with tab5:
+        show_about()
+
+    # Footer informativo
+    st.markdown("---")
+    st.markdown(
+        """
+        <div class="app-footer">
+            <p><strong>Equipo creador de la app</strong></p>
+            <p>Dra. María Elena Hernando Pérez | mariaelena.hernando@uva.es</p>
+            <p>Dr. Enrique Pérez Riesgo | epercamh@gmail.com</p>
+            <p>Grupo de Fisiopatología del Calcio Intracelular - IBGM (CSIC-UVa)</p>
+            <p>Dirección: Dr. Carlos Villalobos Jorge y Dra. Lucía Núñez Llorente</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 if __name__ == "__main__":
     main()

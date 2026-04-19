@@ -14,6 +14,16 @@ def load_data(file_path):
         pd.DataFrame: DataFrame procesado
     """
     try:
+        file_path = Path(file_path)
+
+        # Si llega una ruta relativa (p. ej. data/archivo.csv), resolverla
+        # respecto a la raíz del proyecto para evitar depender del cwd.
+        if not file_path.is_absolute():
+            project_root = Path(__file__).resolve().parents[2]
+            candidate_path = project_root / file_path
+            if candidate_path.exists():
+                file_path = candidate_path
+
         # Cargar datos
         data = pd.read_csv(file_path, index_col=0)
         
